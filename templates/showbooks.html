@@ -1,0 +1,62 @@
+{% extends "adminpage.html" %}
+{%block body2 %}
+   <h1><img src='../static/img/book.jpg' style = "Width:80px; border-radius:20px">
+       {% if frametitle == "Your Books" %}
+       Your Issued books
+       {% elif frametitle == "Search Books" %}
+       Search book results
+       {% else %}
+       Book Lists
+       {% endif %}
+   </h1>
+    <hr>
+<table class="table">
+    <thead class="table-dark">
+    <tr>
+        <th scope="col" class="table-id">ID</th>
+        <th style="width:400px">Book Title</th>
+        {% if frametitle != "Your Books" %}
+        <th style="width:400px">ISBN</th>
+        <th style="width:400px">Author</th>
+        <th style="width:400px">Publication Year</th>
+        <th style="width:400px">Available</th>
+        <th style="width:400px"></th>
+        {% endif %}
+    </tr>
+    </thead>
+    
+    <tbody>
+        {% for book in booklist %}
+        {% include 'borrow_book_modal.html' %}
+        {% include 'wishlist_book_modal.html' %}
+
+    <tr>
+        <td style="width:400px"> {{ book.id }}</th>
+        <td  style="width:400px">{{ book.title }}</td>
+        {% if frametitle != "Your Books" %}
+        <td style="width:400px">{{ book.isbn }}</td>
+        <td  style="width:400px">{{ book.author }}</td>
+        <td style="width:400px">{{ book.year }}</td>
+        <td  style="width:200px">{{ book.available }}</td>
+        <td class="action">
+           
+            {% if book.available == 'No' %}
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#wishlistBookModal-{{book.id}}">
+                Add to Wishlist
+            </button>
+            {% endif %}
+        
+         
+            {% if book.available == 'Yes' %}
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#borrowBookModal-{{book.id}}">
+                Borrow book
+            </button>
+            {% endif %}
+        
+        </td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+        </tbody>
+</table>
+{% endblock %}

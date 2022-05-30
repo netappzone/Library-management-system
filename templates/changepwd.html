@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{%block body %}
+
+
+
+<div class="container" id="content">
+   <div class="col-md-12">
+<div style=" border-radius: 20px; background-color: lightblue; display:flex;flex-direction:column; align-items:center; justify-content:center;width: 100%; min-width:300px;margin-top: 30px; padding:10px 25px 25px 25px;" >
+   <h1> Change Password </h1>
+   <div style="width:50%;color: #fff;">
+   <hr >
+   </div>
+   <form action= "{{ url_for('myapp.changepwd') }}" method="post" id="f_chg">
+        <label style="width:100px">Email</label>
+        <input type="text" placeholder="email" name="email">
+        <br>
+       <label style="width:100px">Password</label>
+        <input type="password" placeholder="password" name="password"> 
+        <br>
+       <label style="width:100px">Confirm password</label>
+        <input type="password" placeholder="password" name="confirmpassword">
+        <br>
+       <br>
+
+    </form>
+    <input type="submit" name="changepwd"  value="Change password" form="f_chg">
+    <br>
+    <a href="{{ url_for('myapp.userpage') }}"><button>Cancel</button></a>
+</div></div></div>
+{% endblock %}

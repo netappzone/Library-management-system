@@ -1,0 +1,45 @@
+
+{% if book %}
+    <div class="modal fade" id="borrowBookModal-{{book.id}}" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+
+    {% else %}
+        <div class="modal fade" id="borrowBookModal" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        {% endif %}
+
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="bookModalLabel">Borrow Book</h3>
+                    <!-- <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button> -->
+                </div>
+                <div class="modal-body">
+                    <form action="{{url_for('myapp.issue_book')}}" method="POST">
+
+                        <label class="form-label">Selected Book:</label>
+                        <select name="book" class="custom-select form-control" >
+                            {% if book %}
+                                <option selected="selected" required="required" value="{{book.title}}">{{ book.title }}</option>
+                             {% endif %}
+                           
+                            <!-- {% for book in books_to_borrow %}
+                                <option value={{book.id}}>{{ book.title }}</option>
+                            {% endfor %} -->
+                        </select>
+
+                                                <!-- {% if member %} -->
+                        <label class="form-label">Your Email:</label>
+                        <select name="email" required="required" class="custom-select form-control">
+                             <option selected="selected" required="required" value={{member.email}}>{{ member.email }}</option>
+                  
+                        </select>
+                        <!-- {% endif %} -->
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Borrow</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>

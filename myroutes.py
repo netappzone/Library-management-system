@@ -1,0 +1,312 @@
+import csv
+from datetime import date
+from flask import Blueprint
+from flask import render_template, flash, request, session, redirect, url_for
+from mymodel import db, Books, Bookloans, Members
+from sqlalchemy import and_
+from werkzeug.exceptions import HTTPException
+
+myapp = Blueprint("myapp", __name__, template_folder='../templates')
+
+
+@myapp.errorhandler(Exception)
+def handle_exception(e):
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+
+    # now you're handling non-HTTP exceptions only
+    flash("Error!!!. Please try again or contact the developer")
+    return render_template("about.html")
+
+
+def user_or_admin():
+    if 'username' not in session:
+        flash("Please login or signup to continue")
+        return 'nouser'
+    elif session['username'] != 'admin':
+        return 'notadmin'
+    else:
+        return 'admin'
+
+
+@myapp.route('/')
+@myapp.route('/user', methods=['GET', 'POST'])
+def userpage():  # login
+    if request.method == 'POST':
+        member = Members.query.filter_by(email=request.form['email']).first()
+
+        if member != None and member.email == request.form['email'] and member.password == request.form['password']:
+            session['username'] = member.username
+            return showbooks()
+
+        else:
+            flash("member email or password is incorrect")
+            return render_template('login.html')
+
+    elif 'username' in session:
+        return showbooks()
+    else:
+        return render_template('login.html')
+
+
+@myapp.route('/signup')
+def signup():
+    return render_template('signup.html')
+
+
+@myapp.route('/signedup', methods=['GET', 'POST'])
+def signedup():  # login
+
+    if request.method == 'POST':
+        m = Members.query.filter(
+            Members.email == request.form['email']).first()
+
+        if m != None:
+            flash('This email already exists. Please try another one')
+            return redirect('signup')
+        else:
+            if request.form['password'] == request.form['confirmpassword']:
+                member = Members(
+                    request.form['name'], request.form['password'], request.form['email'])
+                db.session.add(member)
+                db.session.commit()
+                return render_template('login.html')
+            else:
+                flash("password and confirm password do not match")
+                return redirect('signup')
+    else:
+        return redirect('signup')
+
+
+@myapp.route('/logoff')
+def logoff():
+    session.pop('username', None)
+    return render_template('login.html')
+
+
+@myapp.route('/admin')
+def adminpage():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    else:
+        return render_template('adminpage.html', username=session['username'])
+
+
+@myapp.route('/about')
+def about():
+    return render_template('about.html', username=session['username'])
+
+
+@myapp.route('/changepwd', methods=['GET', 'POST'])
+def changepwd():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    if request.method == 'POST':
+        m = Members.query.filter(
+            Members.email == request.form['email']).first()
+        if request.form['password'] == request.form['confirmpassword']:
+            if m != None:
+                m.password = request.form['password']
+                db.session.commit()
+                flash("Password change successful")
+            else:
+                flash("Password change failed, Please try again")
+        else:
+            flash("password and confirm password do not match")
+    return render_template('changepwd.html')
+
+
+@myapp.route('/searchbook', methods=['POST'])
+def searchbook():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    else:
+        booklist = Books.query.filter(Books.title.like('%'+request.form['search']+'%')
+                                      | Books.author.like('%'+request.form['search']+'%')
+                                      | Books.isbn.like('%'+request.form['search']+'%'))
+        return render_template('showbooks.html', booklist=booklist, frametitle="Search Books",
+                               username=session['username'])
+
+
+@myapp.route('/books', methods=['GET', 'POST'])
+def showbooks():
+    if 'username' not in session:
+        return userpage()
+
+    member = Members.query.filter(
+        Members.username == session['username']).first()
+    booklist = db.session.query(
+        Books.id,  Books.title, Books.isbn, Books.author, Books.year, Books.available).all()
+    return render_template('showbooks.html', booklist=booklist, member=member, frametitle="All Books",
+                           username=session['username'])
+
+
+@myapp.route('/mybooks', methods=['GET', 'POST'])
+def showmybooks():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    else:
+        member = Members.query.filter(
+            Members.username == session['username']).first()
+        booklist = db.engine.execute(
+            "select id, title from Bookloans where email='"+member.email+"';")
+        return render_template('showbooks.html', booklist=booklist, frametitle="Your Books",
+                               username=session['username'])
+
+
+@myapp.route('/mywishlists', methods=['GET', 'POST'])
+def showmywishlist():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    else:
+        member = Members.query.filter(
+            Members.username == session['username']).first()
+        booklist = db.engine.execute(
+            "select id, title from Wishlist where email='"+member.email+"';")
+        return render_template('showbooks.html', booklist=booklist, frametitle="Your Wishlist",
+                               username=session['username'])
+
+
+@myapp.route('/members', methods=['GET', 'POST'])
+def showmembers():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    elif c == 'notadmin':
+        flash("Please login with admin credentials")
+        return render_template('login.html')
+
+    memberlist = db.session.query(Members.username, Members.email).all()
+    return render_template('showmembers.html', memberlist=memberlist, frametitle="All Members",
+                           username=session['username'])
+
+
+@myapp.route('/add_book', methods=['GET', 'POST'])
+def add_book():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    elif c == 'notadmin':
+        flash("Please login with admin credentials")
+        return render_template('login.html')
+    if request.method == 'POST':
+        book = Books.query.filter(Books.isbn == request.form['isbn'])
+        # book = Books.query.filter(
+        #     Books.title == request.form['bookname']).first() | (Books.isbn == request.form['isbn'])
+        if book != None:
+            book.title = request.form['bookname']
+            book.author = request.form['author']
+            book.isbn = request.form['isbn']
+            book.available = request.form['available']
+            db.session.commit()
+            print("successfully updated")
+        else:
+            db.session.add(
+                Books(request.form['bookname'], request.form['isbn'], request.form['author']))
+            db.session.commit()
+            print("successfully added")
+
+    return render_template('addbook.html', username=session['username'])
+
+
+@myapp.route('/return_book', methods=['GET', 'POST'])
+def return_book():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    elif c == 'notadmin':
+        flash("Please login with admin credentials")
+        return render_template('login.html')
+    if request.method == 'POST':
+        b = Bookloans.query.filter(and_(Bookloans.title == request.form['book'],
+                                        Bookloans.email == request.form['email'])).first()
+        if b != None:
+            db.engine.execute(
+                "update Books set available='Yes' where title='" + request.form['book'] + "';")
+            db.engine.execute("delete from Bookloans where email='" + request.form['email'] + "' and title='"
+                              + request.form['book'] + "';")
+            db.session.commit()
+        else:
+            flash("Bookname and member email doesn't match in bookloans table ")
+    booklist = db.engine.execute(
+        "select title, email, issuedt from Bookloans;")
+    return render_template('issuebook.html', username=session['username'], booklist=booklist, ret=True)
+
+
+@myapp.route('/issue_book', methods=['GET', 'POST'])
+def issue_book():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    # elif c == 'notadmin':
+    #     flash("Please login with admin credentials")
+    #     return render_template('login.html')
+    if request.method == 'POST':
+        b = Books.query.filter(
+            and_(Books.title == request.form['book'], Books.available == 'Yes')).first()
+        m = Members.query.filter(
+            Members.email == request.form['email']).first()
+        if b != None and m != None:
+            db.engine.execute(
+                "update Books set available='No' where title='"+request.form['book']+"';")
+            db.session.add(
+                Bookloans(request.form['book'], request.form['email'], date.today()))
+            db.session.commit()
+        else:
+            flash("Book not available or member doesn't exist")
+    booklist = db.engine.execute(
+        "select title from Books where available='Yes';")
+    return render_template('issuebook.html', username=session['username'], booklist=booklist, ret=False)
+
+
+@myapp.route('/add_member', methods=['GET', 'POST'])
+def add_member():
+    c = user_or_admin()
+    if c == 'nouser':
+        return userpage()
+    elif c == 'notadmin':
+        flash("Please login with admin credentials")
+        return render_template('login.html')
+    if request.method == 'POST':
+        member = Members.query.filter(
+            Members.email == request.form['email']).first()
+        if member != None:
+            member.username = request.form['name']
+            member.password = request.form['password']
+            db.session.commit()
+            print("successfully updated")
+        else:
+            db.session.add(
+                Members(request.form['name'], request.form['password'], request.form['email']))
+            db.session.commit()
+            print("successfully added")
+
+    return render_template('addmember.html', username=session['username'])
+
+
+@myapp.route('/upload_csv', methods=['GET', 'POST'])
+def upload_csv():
+    with open("static/data.csv") as f:
+        reader = csv.reader(f)
+        next(reader)
+        for i in reader:
+            new_entry = Books(
+                isbn=i[1],
+                author=i[2],
+                year=i[3],
+                title=i[4])
+            db.session.add(new_entry)
+            db.session.commit()
+        return redirect(url_for('upload_csv'))
+    # return """
+    #         <form method='post' action='/' enctype='multipart/form-data'>
+    #           Upload a csv file: <input type='file' name='file'>
+    #           <input type='submit' value='Upload'>
+    #         </form>
+    #        """

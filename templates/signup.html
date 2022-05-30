@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{%block body %}
+
+
+
+
+<div class="container" id="content">
+   <div class="col-md-12">
+<div style="height: 80vh; width: 100%; display:flex;flex-direction:column; align-items:center; justify-content:center;text-align:center; border-radius: 20px; background-color: lightblue; padding:5px 25px 25px 5px;" >
+   <div class="animation-area .container-sm" >
+      <div class="animation-area .container-sm" >
+         <div style="display: flex;flex-direction:column">
+            <h1 style="justify-content:center; text-align:center;">Register</h1>
+   <div>
+      <hr style="color: white;">
+   </div>
+   <div >
+   <form action= "{{ url_for('myapp.signedup') }}" method="post" id="fsignup">
+        <label style="width:100px">Name</label>
+        <input type="text" placeholder="name" name="name">
+        <br>
+        <label style="width:100px">Email</label>
+        <input type="text" placeholder="email" name="email">
+        <br>
+       <label style="width:100px">Password</label>
+        <input type="password" placeholder="password" name="password">
+        <br>
+       <label style="width:100px">Confirm password</label>
+        <input type="password" placeholder="password" name="confirmpassword">
+        <br>
+       <br>
+
+    </form>
+   </div>
+<button class="btn  btn-primary btn-block" type="submit" form=fsignup name="submit"> Submit </button>
+    <!-- <input type="submit" name="signup" form="fsignup" value="Submit"> -->
+    <br>
+    <a href="{{ url_for('myapp.userpage') }}"><button class="btn  btn-primary btn-block" >Cancel</button></a>
+</div>
+   </div>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}
